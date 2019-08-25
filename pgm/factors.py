@@ -6,6 +6,13 @@ import numpy as np
 class Factor:
 
     def __init__(self, vars, table):
+        """
+        A single factor that can represent a conditional probability distribution from a Bayes Net or
+        a clique from a Markov Net.
+        :param vars:        Names of variables in the factor.
+        :param table:       A table with an entry for each possible value of each variable.
+                            The dimensions of the table should be in the same order as the variables.
+        """
 
         assert len(vars) == len(table.shape)
 
@@ -13,30 +20,64 @@ class Factor:
         self.table = table
 
     def reduce(self, var, value_idx):
+        """
+        Condition the factor on evidence. If the last variable is eliminated the factor becomes invalid.
+        :param var:             Variable to eliminate.
+        :param value_idx:       Value of the variable according to the evidence.
+        :return:                None.
+        """
 
         index = self.vars.index(var)
         self.table = np.take(self.table, value_idx, axis=index)
         del self.vars[index]
 
     def has_var(self, var):
+        """
+        Check if a variable is in the factor.
+        :param var:             Variable name.
+        :return:                True / False.
+        """
         return var in self.vars
 
     def var_index(self, variable):
+        """
+        Get an index of a variable in the table.
+        :param variable:        Variable name.
+        :return:                An index.
+        """
         return self.vars.index(variable)
 
     def sum_over(self, var):
+        """
+        Sum over all values of a variable.
+        :param var:         Variable name.
+        :return:            None.
+        """
 
         var_idx = self.vars.index(var)
         del self.vars[var_idx]
         self.table = np.sum(self.table, axis=var_idx)
 
     def is_valid(self):
+        """
+        Check if the factor is valid (has more than one variable).
+        :return:        True/False
+        """
         return len(self.vars) > 0
 
     def normalize(self):
+        """
+        Normalize the factor table.
+        :return:        None.
+        """
         self.table = self.table / np.sum(self.table)
 
     def __mul__(self, factor):
+        """
+        Multiply with another factor--will result in a larger table and more variables.
+        :param factor:      A factor.
+        :return:            A new factor.
+        """
 
         vars_1 = set(self.vars)
         vars_2 = set(factor.vars)
@@ -83,11 +124,18 @@ class Factor:
         return Factor(all_variables, new_table)
 
     def __rmul__(self, factor):
-
+        """
+        Multiply from the right side.
+        :param factor:      A factor.
+        :return:            The result of the multiplication.
+        """
         return self.__mul__(factor)
 
     def __str__(self):
-
+        """
+        Return summary of the factor.
+        :return:        String summary.
+        """
         str = "variables: {}\n".format(self.vars)
         str += "table:\n"
         str += np.array2string(self.table)
@@ -99,11 +147,19 @@ class Factor:
 class Factors:
 
     def __init__(self, factors):
-
+        """
+        A list of factors.
+        :param factors:         A list of factors.
+        """
         self.factors = factors
 
     def condition(self, vars, values):
-
+        """
+        Condition all factors on evidence. Deletes invalid factors.
+        :param vars:        List of variables to condition.
+        :param values:      List of values of these variables.
+        :return:            None.
+        """
         assert len(vars) == len(values)
 
         to_delete = []
@@ -122,7 +178,11 @@ class Factors:
             self.factors.remove(factor)
 
     def eliminate(self, ordering):
-
+        """
+        Eliminate variables given an ordering.
+        :param ordering:        A list of variables to eliminate in a given order.
+        :return:                A single factor that is the result of variable elimination.
+        """
         for var in ordering:
             self.eliminate_variable(var)
 
@@ -131,7 +191,11 @@ class Factors:
         return reduce((lambda x, y: x * y), self.factors)
 
     def eliminate_variable(self, var):
-
+        """
+        Eliminate a single variable.
+        :param var:     Variable name.
+        :return:        None.
+        """
         relevant_factors = []
         other_factors = []
 
