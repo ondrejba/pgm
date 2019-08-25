@@ -1,1 +1,2 @@
-* test VE on a more complex graph
+* test VE on a more complex graph--DONE
+* bayes net to factors

@@ -15,8 +15,8 @@ class Factor:
     def reduce(self, var, value_idx):
 
         index = self.vars.index(var)
-        table_idx = [slice(None)] * len(self.vars)
-        table_idx[index] = value_idx
+        self.table = np.take(self.table, value_idx, axis=index)
+        del self.vars[index]
 
     def has_var(self, var):
         return var in self.vars
@@ -29,6 +29,12 @@ class Factor:
         var_idx = self.vars.index(var)
         del self.vars[var_idx]
         self.table = np.sum(self.table, axis=var_idx)
+
+    def is_valid(self):
+        return len(self.vars) > 0
+
+    def normalize(self):
+        self.table = self.table / np.sum(self.table)
 
     def __mul__(self, factor):
 
@@ -85,8 +91,10 @@ class Factor:
         str = "variables: {}\n".format(self.vars)
         str += "table:\n"
         str += np.array2string(self.table)
+        str += "\nsum: {:.8f}".format(np.sum(self.table))
 
         return str
+
 
 class Factors:
 
@@ -94,12 +102,24 @@ class Factors:
 
         self.factors = factors
 
-    def condition(self, vars):
+    def condition(self, vars, values):
+
+        assert len(vars) == len(values)
+
+        to_delete = []
 
         for factor in self.factors:
-            for var in vars:
+
+            for var, value in zip(vars, values):
                 if factor.has_var(var):
-                    factor.reduce(var)
+                    factor.reduce(var, value)
+
+            if not factor.is_valid():
+                to_delete.append(factor)
+
+        for factor in to_delete:
+
+            self.factors.remove(factor)
 
     def eliminate(self, ordering):
 
